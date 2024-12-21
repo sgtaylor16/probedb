@@ -75,6 +75,19 @@ def cp_mach(pressures:List[float]) -> float:
 
     return 1 - (pbar/p1)
 
+def calc_static_pressure(pressures:List[float],cp_static:float) -> float:
+    check_pressure_count(pressures)
+    p1,p2,p3,p4,p5 = pressures
+    pbar = .25*(p2+p3+p4+p5)
+    D = p1 - pbar
+    return -(cp_static * D - pbar)
+
+def calc_total_pressure(pressures:List[float],cp_total:float) -> float:
+    check_pressure_count(pressures)
+    p1,p2,p3,p4,p5 = pressures
+    pbar = .25*(p2+p3+p4+p5)
+    D = p1 - pbar
+    return p1 - cp_total * D
 
 class Probe:
     def __init__(self,dbloc: str,rakename:str,probeheight:int):
@@ -122,12 +135,13 @@ class Probe:
         machX = PolynomialFeatures(degree=4).fit_transform(x).flatten()
         angleX = PolynomialFeatures(degree=5).fit_transform(x).flatten()
 
-        total = self.total.dot(totalX)
-        static = self.static.dot(staticX)
+        total = calc_total_pressure(pressures,self.total.dot(totalX))
+        static = calc_static_pressure(pressures,self.static.dot(staticX))
         mach = self.mach.dot(machX)
         alpha = self.alpha.dot(angleX)
         beta = self.beta.dot(angleX)
 
         return {'total':total,'static':static,'mach':mach,'alpha':alpha,'beta':beta}
 
+def calc_values(probesn:str,height:int,pressures:List[float]):
 
