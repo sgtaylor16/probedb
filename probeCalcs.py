@@ -143,5 +143,27 @@ class Probe:
 
         return {'total':total,'static':static,'mach':mach,'alpha':alpha,'beta':beta}
 
-def calc_values(probesn:str,height:int,pressures:List[float]):
+def calc_values(dbloc:str,rakesn:str,height:int,pressures:List[float]) -> dict:
+    tempProbe = Probe(dbloc,rakesn,height)
+    return tempProbe.predict(pressures)
 
+def loadrakes(dbloc:str):
+    con = sqlite3.connect(dbloc)
+    cur = con.cursor()
+    value = cur.execute("""SELECT DISTINCT RAKE_SN FROM PROBES""").fetchall()
+    distinct_rakes = [x[0]for x in value]
+
+    probeheights = {}
+    for rake in distinct_rakes:
+        heights = cur.execute("SELECT DISTINCT HEIGHT FROM PROBES WHERE RAKE_SN =  ?",(rake,)).fetchall()
+        heights = [x[0] for x in heights]
+        probeheights[rake] = heights
+
+    probeDict = {}
+    for rake in distinct_rakes:
+        probeDict[rake] = {}
+        for height in probeheights[rake]:
+            probeDict[rake][height] = Probe(dbloc,rake,height)
+
+    return probeDict
+            
