@@ -8,6 +8,9 @@ from sklearn.preprocessing import PolynomialFeatures
 from typing import List
 
 def readAlData():
+    """  
+    Reads all the data from the csv files in the directory and returns a dataframe
+    """
     sndir = {'rpgzg3_1':'4H-1',
          'rpgzg3_2':'4H-2',
          'rpgzg3_3':'4H-3',
@@ -147,7 +150,11 @@ def calc_values(dbloc:str,rakesn:str,height:int,pressures:List[float]) -> dict:
     tempProbe = Probe(dbloc,rakesn,height)
     return tempProbe.predict(pressures)
 
-def loadrakes(dbloc:str):
+def loadrakes(dbloc:str) -> dict:
+    """
+    Loads the rakes from the database and returns a dictionary of Probe objects with 
+    keys as the rake serial number followed by the height i.e. dict['rake serial number'][height] -> Probe object
+    """
     con = sqlite3.connect(dbloc)
     cur = con.cursor()
     value = cur.execute("""SELECT DISTINCT RAKE_SN FROM PROBES""").fetchall()
