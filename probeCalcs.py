@@ -145,6 +145,15 @@ class Probe:
         beta = self.beta.dot(angleX)
 
         return {'total':total,'static':static,'mach':mach,'alpha':alpha,'beta':beta}
+    
+    def predictPSI(self,pressures:List[float]):
+        """ 
+        Predicts the values in PSI given a list of pressures in PSI
+        """
+        results = self.predict([p * 6894.76 for p in pressures])
+        results['total'] = results['total'] / 6894.76
+        results['static'] = results['static'] / 6894.76
+        return results
 
 def calc_values(dbloc:str,rakesn:str,height:int,pressures:List[float]) -> dict:
     tempProbe = Probe(dbloc,rakesn,height)
