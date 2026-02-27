@@ -58,20 +58,25 @@ def readAlData():
 def check_pressure_count(pressures:List[float]):
     if len(pressures) != 5:
         raise ValueError("Input must be a list of 5 pressures")
+    
+#Forward Rake Coefficient Calculations
 
 def cp_alpha(pressures:List[float]) -> float:
+    """This calculation is good for Vectoflow probes"""
     check_pressure_count(pressures)
     p1,p2,p3,p4,p5 = pressures
     pbar = .25*(p2+p3+p4+p5)
     return (p5 - p4)/(p1 - pbar)
 
 def cp_beta(pressures:List[float]) -> float:
+    """This calculation is good for Vectoflow probes"""
     check_pressure_count(pressures)
     p1,p2,p3,p4,p5 = pressures
     pbar = .25*(p2+p3+p4+p5)
     return (p3 - p2)/(p1 - pbar)
 
 def cp_mach(pressures:List[float]) -> float:
+    """This calculation is good for Vectoflow probes"""
     check_pressure_count(pressures)
     p1,p2,p3,p4,p5 = pressures
     pbar = .25*(p2+p3+p4+p5)
@@ -79,6 +84,7 @@ def cp_mach(pressures:List[float]) -> float:
     return 1 - (pbar/p1)
 
 def calc_static_pressure(pressures:List[float],cp_static:float) -> float:
+    """This calculation is good for Vectoflow probes"""
     check_pressure_count(pressures)
     p1,p2,p3,p4,p5 = pressures
     pbar = .25*(p2+p3+p4+p5)
@@ -86,18 +92,35 @@ def calc_static_pressure(pressures:List[float],cp_static:float) -> float:
     return -(cp_static * D - pbar)
 
 def calc_total_pressure(pressures:List[float],cp_total:float) -> float:
+    """This calculation is good for Vectoflow probes"""
     check_pressure_count(pressures)
     p1,p2,p3,p4,p5 = pressures
     pbar = .25*(p2+p3+p4+p5)
     D = p1 - pbar
     return p1 - cp_total * D
 
+# Rear Pressure Traverse Coefficient Calculations
+
+def cp_alpha_rear(pressures:List[float]) -> float:
+    check_pressure_count(pressures)
+    p1,p2,p3,p4,p5 = pressures
+    pbar = 0.25 *(p2 + p3 + p4 + p5)
+    return (p3 - p5) / (p1 - pbar)
+
+def cp_beta_rear(pressures:List[float]) -> float:
+    check_pressure_count(pressures)
+    p1,p2,p3,p4,p5 = pressures
+    pbar = 0.25 *(p2 + p3 + p4 + p5)
+    return (p2 - p4) / (p1 - pbar)
+
+cp_mach_rear = cp_mach
+
 class Probe:
     def __init__(self,dbloc: str,rakename:str,probeheight:int):
         self.dbloc = dbloc
         con = sqlite3.connect(dbloc)
         probe_id = pd.read_sql_query("SELECT ID FROM PROBES WHERE RAKE_SN = '{}' AND HEIGHT = {}".format(rakename,probeheight),con)
-        
+
         if probe_id.shape[0] == 0:
             raise ValueError("Probe not found in database")
         elif probe_id.shape[0] > 1:
@@ -131,7 +154,12 @@ class Probe:
         check_pressure_count(pressures)
         p1,p2,p3,p4,p5 = pressures
 
-        x = np.array([cp_mach(pressures),cp_alpha(pressures),cp_beta(pressures)]).reshape(1,-1)
+        if self.probe_id <= 36:
+            x = np.array([cp_mach(pressures),cp_alpha(pressures),cp_beta(pressures)]).reshape(1,-1)
+
+        elif self.probe_id >= 37 and self.probe_id <= 41:
+            # Use the rear traverse 
+            x = np.array([cp_mach(pressures),cp_alpha_rear(pressures),cp_beta_rear(pressures)]).reshape(1,-1)
 
         totalX = PolynomialFeatures(degree=2).fit_transform(x).flatten()
         staticX = PolynomialFeatures(degree=4).fit_transform(x).flatten()
