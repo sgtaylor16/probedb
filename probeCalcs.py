@@ -211,3 +211,28 @@ def loadrakes(dbloc:str) -> dict:
 
     return probeDict
             
+def parseTable(self,data:pd.DataFrame,pressures:dict[str,str],indexkey:str) -> pd.DataFrame:
+    """Parses a table of pressures and returns a dataframe with the predicted values for each row"""
+    outputcolumns = ['total','static','mach','alpha','beta']
+    outputdata = []
+    indexdata = []
+    for row in data.iterrows():
+        output = self.predict([row[pressures['P1']],row[pressures['P2']],row[pressures['P3']],row[pressures['P4']],row[pressures['P5']]])
+        onerow = [output[column] for column in outputcolumns]
+        outputdata.append(onerow)
+        indexdata.append(row[indexkey])
+    outputdf = pd.DataFrame(outputdata,columns=outputcolumns,index=indexdata)
+    return outputdf
+
+def parseTablePSI(self,data:pd.DataFrame,pressures:dict[str,str],indexkey:str) -> pd.DataFrame:
+    """Parses a table of pressures in PSI and returns a dataframe with the predicted values for each row"""
+    outputcolumns = ['total','static','mach','alpha','beta']
+    outputdata = []
+    indexdata = []
+    for row in data.iterrows():
+        output = self.predictPSI([row[pressures['P1']],row[pressures['P2']],row[pressures['P3']],row[pressures['P4']],row[pressures['P5']]])
+        onerow = [output[column] for column in outputcolumns]
+        outputdata.append(onerow)
+        indexdata.append(row[indexkey])
+    outputdf = pd.DataFrame(outputdata,columns=outputcolumns,index=indexdata)
+    return outputdf
