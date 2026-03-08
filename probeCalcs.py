@@ -7,6 +7,8 @@ import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 from typing import List
 
+from pydantic import BaseModel
+
 def readAlData():
     """  
     Reads all the data from the csv files in the directory and returns a dataframe
@@ -210,19 +212,42 @@ def loadrakes(dbloc:str) -> dict:
             probeDict[rake][height] = Probe(dbloc,rake,height)
 
     return probeDict
+
+def TypeProbe(BaseModel):
+    name:str
+    p1: str
+    p2: str
+    p3: str
+    p4: str
+    p5: str
+
+def TypeRakeArray(BaseModel):
+    rake1: TypeProbe
+    rake2: TypeProbe
+    rake3: TypeProbe
+    rake4: TypeProbe
+    rake5: TypeProbe
+
+def checkpressurelabels(probe:TypeProbe,df:pd.DataFrame):
+    """Checks if the pressure labels in the probe are in the dataframe columns"""
+    for label in [probe.p1,probe.p2,probe.p3,probe.p4,probe.p5]:
+        if label not in df.columns:
+            raise ValueError(f"{label} not found in dataframe columns")
             
-def parseTable(self,data:pd.DataFrame,pressures:dict[str,str],indexkey:str) -> pd.DataFrame:
+def parseTable(self,data:pd.DataFrame,holelabels:TypeProbe,indexkey:str) -> pd.DataFrame:
     """Parses a table of pressures and returns a dataframe with the predicted values for each row"""
+    checkpressurelabels(holelabels, data)
     outputcolumns = ['total','static','mach','alpha','beta']
     outputdata = []
     indexdata = []
     for row in data.iterrows():
-        output = self.predict([row[pressures['P1']],row[pressures['P2']],row[pressures['P3']],row[pressures['P4']],row[pressures['P5']]])
+        output = self.predict([row[holelabels.p1],row[holelabels.p2],row[holelabels.p3],row[holelabels.p4],row[holelabels.p5]])
         onerow = [output[column] for column in outputcolumns]
         outputdata.append(onerow)
         indexdata.append(row[indexkey])
     outputdf = pd.DataFrame(outputdata,columns=outputcolumns,index=indexdata)
     return outputdf
+
 
 def parseTablePSI(self,data:pd.DataFrame,pressures:dict[str,str],indexkey:str) -> pd.DataFrame:
     """Parses a table of pressures in PSI and returns a dataframe with the predicted values for each row"""
@@ -236,3 +261,29 @@ def parseTablePSI(self,data:pd.DataFrame,pressures:dict[str,str],indexkey:str) -
         indexdata.append(row[indexkey])
     outputdf = pd.DataFrame(outputdata,columns=outputcolumns,index=indexdata)
     return outputdf
+
+def parseTableMultipleProbes(self,data:pd.DataFrame,array:TypeRakeArray,indexkey:str) -> pd.DataFrame:
+    table1 = self.parseTable(data,array.rake1,indexkey)
+    table1.columns = [col + array.rake1.name for col in table1.columns]
+    table2 = self.parseTable(data,array.rake2,indexkey)
+    table2.columns = [col + array.rake2.name for col in table2.columns]
+    table3 = self.parseTable(data,array.rake3,indexkey)
+    table3.columns = [col + array.rake3.name for col in table3.columns]
+    table4 = self.parseTable(data,array.rake4,indexkey)
+    table4.columns = [col + array.rake4.name for col in table4.columns]
+    table5 = self.parseTable(data,array.rake5,indexkey)
+    table5.columns = [col + array.rake5.name for col in table5.columns]
+    return pd.concat([table1,table2,table3,table4,table5],axis=1)
+
+def parseTableMultipleProbesPSI(self,data:pd.DataFrame,array:TypeRakeArray,indexkey:str) -> pd.DataFrame:
+    table1 = self.parseTablePSI(data,array.rake1,indexkey)
+    table1.columns = [col + array.rake1.name for col in table1.columns]
+    table2 = self.parseTablePSI(data,array.rake2,indexkey)
+    table2.columns = [col + array.rake2.name for col in table2.columns]
+    table3 = self.parseTablePSI(data,array.rake3,indexkey)
+    table3.columns = [col + array.rake3.name for col in table3.columns]
+    table4 = self.parseTablePSI(data,array.rake4,indexkey)
+    table4.columns = [col + array.rake4.name for col in table4.columns]
+    table5 = self.parseTablePSI(data,array.rake5,indexkey)
+    table5.columns = [col + array.rake5.name for col in table5.columns]
+    return pd.concat([table1,table2,table3,table4,table5],axis=1)
